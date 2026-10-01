@@ -1,0 +1,781 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}</style><style>:root{color-scheme:light dark;--md-bg:#fff;--md-text:rgba(0,0,0,.8);--md-muted:rgba(0,0,0,.6);--md-fill:rgba(0,0,0,.04);--md-fill-strong:rgba(0,0,0,.06);--md-rule:rgba(0,0,0,.1);--md-rule-strong:rgba(0,0,0,.16);--md-link:hsl(210 100% 45%)}@media (prefers-color-scheme:dark){:root:where(:not([data-theme="light"])){--md-bg:#0d0d0d;--md-text:rgba(255,255,255,.85);--md-muted:rgba(255,255,255,.6);--md-fill:rgba(255,255,255,.06);--md-fill-strong:rgba(255,255,255,.09);--md-rule:rgba(255,255,255,.14);--md-rule-strong:rgba(255,255,255,.22);--md-link:hsl(210 100% 72%)}}:root[data-theme="dark"]{color-scheme:dark;--md-bg:#0d0d0d;--md-text:rgba(255,255,255,.85);--md-muted:rgba(255,255,255,.6);--md-fill:rgba(255,255,255,.06);--md-fill-strong:rgba(255,255,255,.09);--md-rule:rgba(255,255,255,.14);--md-rule-strong:rgba(255,255,255,.22);--md-link:hsl(210 100% 72%)}:root[data-theme="light"]{color-scheme:light}@media print{:root,:root[data-theme="dark"]{color-scheme:light;--md-bg:#fff;--md-text:rgba(0,0,0,.8);--md-muted:rgba(0,0,0,.6);--md-fill:rgba(0,0,0,.04);--md-fill-strong:rgba(0,0,0,.06);--md-rule:rgba(0,0,0,.1);--md-rule-strong:rgba(0,0,0,.16);--md-link:hsl(210 100% 45%)}}body{background:var(--md-bg);color:var(--md-text);max-width:720px;margin:0 auto;padding:32px;display:flex;flex-direction:column;gap:10px;font:14px/1.55 -apple-system,BlinkMacSystemFont,'SF Pro','Segoe UI',sans-serif;overflow-wrap:break-word}body>:first-child{margin-top:0}h1,h2,h3,h4,h5,h6{margin:6px 0 0;line-height:1.25;font-weight:600;text-wrap:balance}h1{font-size:1.35em}h2{font-size:1.15em;color:var(--md-muted)}h3,h4,h5,h6{font-size:1em}p,ul,ol,blockquote,table,pre,hr{margin:0}strong{font-weight:600}a{color:var(--md-link);text-decoration:none}a:hover{text-decoration:underline}ul,ol{display:flex;flex-direction:column;gap:6px;padding-left:22px}ul{list-style:disc}ol{list-style:decimal}:is(li,td,th)>*+:is(p,ul,ol,blockquote){margin-top:6px}blockquote{display:flex;flex-direction:column;gap:10px;border-left:2px solid var(--md-rule);padding-left:10px;color:var(--md-muted)}:not(pre)>code{background:var(--md-fill);padding:1px 3px;border-radius:4px;font:.92em 'SF Mono',ui-monospace,Menlo,Consolas,monospace}a>code{background:none;color:inherit}pre{background:var(--md-fill);padding:10px 12px;border-radius:6px;overflow-x:auto;font:12px/1.5 'SF Mono',ui-monospace,Menlo,Consolas,monospace;margin-block:4px}pre code{background:none;padding:0;font:inherit}table{width:100%;border-collapse:separate;border-spacing:2px;font:inherit}th,td{padding:6px 8px;border-radius:3px;text-align:left;vertical-align:top}th{background:var(--md-fill-strong);font-weight:600}td{background:var(--md-fill)}:is(th,td) :not(pre)>code{background:transparent}hr{border:0;border-top:1px solid var(--md-rule-strong);margin-block:10px}img{max-width:100%;height:auto;border-radius:4px}</style>
+</head><body>
+<h1>Alerta SOS Invisível — Especificação do FRONTEND (Painel Web)</h1>
+<p><strong>Versão 1.1</strong> — acrescenta os perfis <strong>Esquadra</strong>, <strong>Comando</strong> e <strong>Dono do estabelecimento</strong> (secções 3.5 a 3.7), o encaminhamento para a esquadra mais próxima e o despacho de patrulhas.</p>
+<p>Documento para quem implementa o painel de operadores. Não precisa de ler mais nada para começar. O backend e a app Android são feitos por outras pessoas. Pode trabalhar desde o primeiro dia com <strong>dados simulados</strong> (secção 9) e trocar pela API real quando o backend estiver pronto.</p>
+<hr>
+<h2>1. O que é o painel e quem o usa</h2>
+<p>O painel é usado por <strong>vários perfis</strong> (tabela abaixo). Quando alguém dispara um SOS no telemóvel, ou um botão de estabelecimento é premido, o painel tem de:</p>
+<ol>
+<li>Avisar o operador <strong>de imediato</strong> (som + destaque visual).</li>
+<li>Mostrar <strong>onde</strong> a pessoa está, no mapa, e mover o marcador se ela se deslocar.</li>
+<li>Deixar o operador <strong>assumir</strong> o caso e mudar o estado até ao fim.</li>
+</ol>
+<p>O operador está sob pressão. A interface deve ser <strong>clara, rápida e sem cliques a mais</strong>: assumir um alerta em no máximo 3 cliques.</p>
+<table>
+<thead>
+<tr>
+<th>Perfil (<code>role</code>)</th>
+<th>Quem é</th>
+<th>Rota inicial</th>
+<th>O que vê e faz</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>operador</code></td>
+<td>Central / segurança privada</td>
+<td><code>/</code></td>
+<td>Todos os alertas; assume e muda estados</td>
+</tr>
+<tr>
+<td><code>despachante</code></td>
+<td>Esquadra</td>
+<td><code>/esquadra</code></td>
+<td>Alertas da sua esquadra; assume, despacha patrulhas, gere a disponibilidade</td>
+</tr>
+<tr>
+<td><code>comando</code></td>
+<td>Comando acima das esquadras</td>
+<td><code>/comando</code></td>
+<td>Supervisão de toda a sua área; reatribui alertas; estatísticas; age se houver escalada</td>
+</tr>
+<tr>
+<td><code>dono_estabelecimento</code></td>
+<td>Dono de loja, farmácia, banco, bomba</td>
+<td><code>/estabelecimento</code></td>
+<td>Só leitura dos alertas do seu estabelecimento, em linguagem simples</td>
+</tr>
+<tr>
+<td><code>admin</code></td>
+<td>Administração</td>
+<td><code>/</code></td>
+<td>Tudo</td>
+</tr>
+</tbody>
+</table>
+<p>As vistas partilham os mesmos componentes (mapa, lista, cartão de alerta, detalhe). Construí-los de forma reutilizável e mostrar ou ocultar blocos conforme o <code>role</code>. <strong>O backend é que impõe as permissões</strong>; o frontend só esconde o que o perfil não pode usar e trata o <code>403</code> com uma mensagem.</p>
+<p><strong>Fora do MVP:</strong> gestão de utilizadores e organizações (admin), exportar relatórios, app para contactos de confiança, GPS em tempo real das viaturas e app própria das patrulhas (as patrulhas são geridas pelo despachante).</p>
+<hr>
+<h2>2. Stack recomendada</h2>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Escolha</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Framework</td>
+<td>React 18 + Vite + TypeScript</td>
+</tr>
+<tr>
+<td>Estilos</td>
+<td>Tailwind CSS</td>
+</tr>
+<tr>
+<td>Mapa</td>
+<td>Leaflet + react-leaflet + tiles do OpenStreetMap (sem chave)</td>
+</tr>
+<tr>
+<td>Dados</td>
+<td>TanStack Query (pedidos) + <code>EventSource</code> nativo (tempo real)</td>
+</tr>
+<tr>
+<td>Estado global</td>
+<td>Zustand ou Context (só sessão e alertas em memória)</td>
+</tr>
+<tr>
+<td>Rotas</td>
+<td>React Router</td>
+</tr>
+<tr>
+<td>Datas</td>
+<td>date-fns (locale <code>pt</code>)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variáveis de ambiente:</strong></p>
+<pre><code>VITE_API_URL=http://localhost:3000/api/v1
+VITE_USE_MOCK=true        # true = usa dados simulados sem backend
+</code></pre>
+<hr>
+<h2>3. Ecrãs</h2>
+<h3>3.1 Login (<code>/login</code>)</h3>
+<ul>
+<li>Campos: telefone e password. Botão &quot;Entrar&quot;.</li>
+<li>Erro visível se credenciais erradas.</li>
+<li>Após login, guardar o token em memória (e em <code>sessionStorage</code> para sobreviver a um refresh) e ir para a <strong>rota inicial do perfil</strong> (tabela da secção 1). Se um utilizador abrir uma rota que não é do seu perfil, redirecionar para a dele.</li>
+<li>Qualquer resposta <code>401</code> em qualquer pedido leva de volta ao login.</li>
+</ul>
+<h3>3.2 Painel principal (<code>/</code>) — operador e base de todas as vistas</h3>
+<p>As vistas de esquadra, comando e dono (3.5 a 3.7) reutilizam este layout e estes componentes.</p>
+<p>Layout em 3 zonas, ocupando o ecrã todo:</p>
+<pre><code>┌────────────────────────────────────────────────────────────┐
+│ Barra superior: logo · nº de alertas activos · ligação ●   │
+│                 · som on/off · nome do operador · Sair     │
+├──────────────┬─────────────────────────────┬───────────────┤
+│ LISTA DE     │                             │ DETALHE DO    │
+│ ALERTAS      │          MAPA               │ ALERTA        │
+│ (320 px)     │     (ocupa o resto)         │ (360 px)      │
+│              │                             │ só aparece    │
+│              │                             │ com alerta    │
+│              │                             │ seleccionado  │
+└──────────────┴─────────────────────────────┴───────────────┘
+</code></pre>
+<p><strong>Barra superior</strong></p>
+<ul>
+<li>Contador de alertas activos (vermelho se houver algum <code>NOVO</code>).</li>
+<li>Indicador de ligação em tempo real: verde &quot;Ligado&quot;, amarelo &quot;A reconectar…&quot;, vermelho &quot;Sem ligação&quot;. Com ligação perdida, mostrar faixa de aviso por cima do mapa.</li>
+<li>Interruptor de som. O browser só permite tocar áudio depois de uma interacção: no primeiro acesso, mostrar botão &quot;Activar alertas sonoros&quot; e guardar a escolha.</li>
+</ul>
+<p><strong>Lista de alertas (esquerda)</strong></p>
+<ul>
+<li>Um cartão por alerta activo, o mais recente no topo, mas alertas <code>NOVO</code> sempre acima dos outros.</li>
+<li>Cada cartão mostra: nome (ou <strong>estabelecimento e balcão</strong> nos alertas de botão, com ícone de loja), <strong>esquadra responsável</strong>, estado (etiqueta colorida), tempo decorrido actualizado a cada segundo (&quot;há 00:42&quot;), canal de origem (ícone internet ou SMS, só em alertas de cidadão), bateria, e &quot;Assumido por X&quot; quando aplicável.</li>
+<li>Clicar num cartão selecciona o alerta: abre o detalhe e centra o mapa nele.</li>
+<li>Lista vazia: mensagem &quot;Sem alertas activos&quot;.</li>
+<li>Filtro simples no topo da lista: Activos / Todos (inclui encerrados das últimas 24 h).</li>
+</ul>
+<p><strong>Mapa (centro)</strong></p>
+<ul>
+<li>Um marcador por alerta activo, com cor do estado. Alertas <code>NOVO</code> com animação de pulso. Alertas de botão usam ícone de loja.</li>
+<li><strong>Esquadras</strong> (<code>GET /organizations?type=esquadra</code>) como marcadores de outro tipo (ícone de escudo), com o nome ao passar o rato. No alerta seleccionado, destacar a esquadra responsável e desenhar uma linha tracejada até ao alerta com a distância (&quot;1,4 km&quot;).</li>
+<li>Alerta seleccionado: marcador maior, círculo com o raio da precisão (<code>accuracy_m</code>) e <strong>linha do trilho</strong> ligando as posições por ordem de <code>captured_at</code>.</li>
+<li>Quando chega nova posição, mover o marcador com animação suave e acrescentar ao trilho.</li>
+<li>Botão &quot;Centrar no alerta&quot; e opção &quot;Seguir automaticamente&quot; (ligada por omissão ao seleccionar).</li>
+<li>Vista inicial: Beira, Moçambique (lat -19.8436, lon 34.8389, zoom 13). Ao chegar um novo alerta, ajustar o mapa para o mostrar.</li>
+</ul>
+<p><strong>Detalhe do alerta (direita)</strong></p>
+<ul>
+<li>Nome e telefone da pessoa (telefone clicável <code>tel:</code>). Nos alertas de botão (<code>source = &quot;botao&quot;</code>), mostrar em vez disso o estabelecimento, o balcão e o endereço.</li>
+<li>Estado actual e tempo desde o início.</li>
+<li>Coordenadas, precisão (&quot;±12 m&quot;), bateria, canal, hora da última posição. Se a última posição tiver mais de 60 s, destacar &quot;Sem actualização há X&quot;.</li>
+<li>Se <code>location_source = last_known</code>, mostrar aviso &quot;Localização aproximada (última conhecida)&quot;.</li>
+<li><strong>Encaminhamento:</strong> cadeia de notificação com Responsável (esquadra e distância), Supervisão (Comando) e Reserva (esquadra, &quot;em espera&quot; ou &quot;activada&quot;). Vem de <code>routing</code>.</li>
+<li><strong>Patrulhas despachadas</strong> (nome e estado), quando existirem (ver 3.5).</li>
+<li>Contactos de confiança (lista, só em alertas de cidadão).</li>
+<li>Botão &quot;Copiar coordenadas&quot; e &quot;Abrir no Google Maps&quot; (<code>https://www.google.com/maps?q=lat,lon</code>).</li>
+<li><strong>Botões de acção conforme o estado</strong> (ver secção 5).</li>
+<li>Linha do tempo: lista de acontecimentos (criado, assumido por…, estado mudou…).</li>
+</ul>
+<h3>3.3 Histórico (<code>/historico</code>)</h3>
+<ul>
+<li>Tabela: data, nome, estado final, duração, operador, canal.</li>
+<li>Filtros: intervalo de datas e estado.</li>
+<li>Clicar numa linha abre o detalhe só de leitura (mesmo componente, sem botões de acção) com o trilho completo no mapa.</li>
+<li>Paginação de 50 em 50.</li>
+</ul>
+<h3>3.4 Simulador de estabelecimento (<code>/demo</code>) — só para a demonstração</h3>
+<ul>
+<li>Lista de botões (<code>GET /demo/buttons</code>: estabelecimento e balcão) e botão &quot;Disparar alerta&quot;.</li>
+<li>Faz <code>POST /demo/button-alert</code> com o <code>button_id</code>. O backend trata-o como um alerta de botão real, com encaminhamento à esquadra mais próxima e SMS ao dono (em modo <code>log</code> na demo), por isso aparece em todas as vistas.</li>
+<li>Em modo mock basta injectar o alerta localmente.</li>
+<li>Esconder esta rota fora da demo (<code>VITE_SHOW_DEMO=true</code>).</li>
+</ul>
+<h3>3.5 Vista da Esquadra (<code>/esquadra</code>) — perfil <code>despachante</code></h3>
+<p>Mesmo layout de 3 zonas. A barra superior mostra o nome da esquadra. O painel da esquerda tem dois separadores: <strong>Alertas</strong> e <strong>Patrulhas</strong>.</p>
+<p><strong>Separador Alertas</strong></p>
+<ul>
+<li>Alertas em que a esquadra tem rota. Etiqueta &quot;Responsável&quot; ou, após escalada, &quot;Reserva&quot;.</li>
+<li>Se a esquadra é a reserva, mostrar no detalhe a faixa: &quot;Esta esquadra foi chamada porque a Esquadra X não respondeu a tempo.&quot;</li>
+<li>Sirene completa (secção 7) para alertas <code>NOVO</code> em que a esquadra pode agir.</li>
+</ul>
+<p><strong>Separador Patrulhas</strong> (<code>GET /patrols</code>)</p>
+<ul>
+<li>Lista das patrulhas da esquadra: nome, viatura, chip de estado e, se estiver em serviço, o alerta a que está ligada.</li>
+<li>Interruptor <strong>Disponível / Indisponível</strong> (<code>PATCH /patrols/{id}</code>), bloqueado enquanto a patrulha está despachada.</li>
+<li>Contador no topo: &quot;3 de 4 disponíveis&quot;.</li>
+</ul>
+<p><strong>Bloco &quot;Patrulhas&quot; no detalhe do alerta</strong></p>
+<ul>
+<li>Com o alerta em <code>NOVO</code>: botão <strong>Assumir</strong> em destaque; o bloco de patrulhas aparece desactivado com o texto &quot;Assuma o alerta para despachar&quot;.</li>
+<li>Depois de assumir: botão <strong>Despachar patrulha</strong>. Abre uma janela com as patrulhas disponíveis (selecção múltipla) e &quot;Confirmar despacho&quot; (<code>POST /alerts/{uid}/dispatch</code>).</li>
+<li>Cada patrulha despachada aparece numa linha com o seu estado e os botões do passo seguinte:</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Estado da patrulha</th>
+<th>Botão principal</th>
+<th>Botão secundário</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Despachada</td>
+<td><strong>A caminho</strong></td>
+<td>Libertar</td>
+</tr>
+<tr>
+<td>A caminho</td>
+<td><strong>No local</strong></td>
+<td>Libertar</td>
+</tr>
+<tr>
+<td>No local</td>
+<td>Libertar</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>Estas acções chamam <code>PATCH /alerts/{uid}/patrols/{patrol_id}</code>. O estado do alerta muda sozinho (A caminho, No local), por isso o frontend só precisa de reagir aos eventos <code>alert.status_changed</code>. &quot;Libertar&quot; pede confirmação.</li>
+<li><strong>Resolver</strong> e <strong>Falso alarme</strong> continuam como na secção 5.</li>
+</ul>
+<p>As patrulhas <strong>não têm posição no mapa</strong> no MVP. O mapa mostra a esquadra (destacada), o alerta e a linha com a distância.</p>
+<h3>3.6 Vista do Comando (<code>/comando</code>) — perfil <code>comando</code></h3>
+<p><strong>Mapa:</strong> todas as esquadras da área, cada uma com um número de alertas activos; todos os alertas; ao seleccionar um alerta, destacar a cadeia (esquadra responsável, reserva).</p>
+<p><strong>Painel da esquerda, 3 separadores:</strong></p>
+<ul>
+<li><strong>Alertas:</strong> mesma lista, com a coluna &quot;Esquadra responsável&quot;. Etiqueta cinzenta <strong>&quot;Supervisão&quot;</strong> enquanto o alerta não escalou e vermelha <strong>&quot;ACÇÃO NECESSÁRIA&quot;</strong> depois de <code>escalated = true</code>.</li>
+<li><strong>Esquadras:</strong> uma linha por esquadra com alertas activos e patrulhas disponíveis sobre o total (<code>GET /organizations</code>, <code>GET /patrols</code>).</li>
+<li><strong>Estatísticas</strong> (<code>GET /stats/response-times</code>): selector Hoje / 7 dias / 30 dias; cartões com número de alertas, tempo médio até assumir, até ao despacho e até à chegada ao local, número de escaladas; tabela por esquadra.</li>
+</ul>
+<p><strong>Detalhe do alerta:</strong></p>
+<ul>
+<li>Bloco de encaminhamento com o botão <strong>Reatribuir</strong>, disponível com o alerta em <code>NOVO</code> ou <code>ASSUMIDO</code>. Abre uma lista das esquadras ordenadas por distância ao alerta (calcular com haversine no cliente) e &quot;Confirmar&quot; (<code>POST /alerts/{uid}/reassign</code>).</li>
+<li>Em supervisão (sem escalada), os botões Assumir, Resolver e Falso alarme ficam <strong>desactivados</strong> com a dica &quot;O Comando só age após escalada. Pode reatribuir.&quot; Depois de <code>escalated = true</code>, ficam activos.</li>
+<li>Aviso sonoro curto ao chegar um alerta novo; sirene completa no <code>alert.escalated</code>.</li>
+</ul>
+<h3>3.7 Vista do Dono do estabelecimento (<code>/estabelecimento</code>) — perfil <code>dono_estabelecimento</code></h3>
+<p>Página simples, <strong>pensada primeiro para telemóvel</strong>, sem mapa e sem dados da polícia.</p>
+<ul>
+<li>Cabeçalho com o nome do estabelecimento.</li>
+<li><strong>Alerta activo:</strong> faixa vermelha grande &quot;ALERTA no balcão Caixa 2&quot;, hora e &quot;há 02:15&quot;. Por baixo, sempre visível: <strong>&quot;A polícia foi notificada. Não se dirija ao local.&quot;</strong></li>
+<li>Estado em linguagem simples, a partir do <code>status</code>:</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Estado</th>
+<th>Texto mostrado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NOVO</td>
+<td>Polícia notificada</td>
+</tr>
+<tr>
+<td>ASSUMIDO</td>
+<td>A polícia está a tratar do caso</td>
+</tr>
+<tr>
+<td>EQUIPA_A_CAMINHO</td>
+<td>Equipa a caminho</td>
+</tr>
+<tr>
+<td>EQUIPA_NO_LOCAL</td>
+<td>Equipa no local</td>
+</tr>
+<tr>
+<td>RESOLVIDO</td>
+<td>Situação resolvida</td>
+</tr>
+<tr>
+<td>FALSO_ALARME</td>
+<td>Marcado como falso alarme</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Histórico:</strong> lista dos últimos alertas do estabelecimento (data, balcão, resultado).</li>
+<li>Sem botões de acção. A API já devolve a versão reduzida (secção 8): o frontend não deve tentar mostrar coordenadas, patrulhas nem nomes de polícias.</li>
+<li>Toast e um som curto, uma só vez, ao chegar um alerta (sem sirene em loop).</li>
+</ul>
+<hr>
+<h2>4. Estados e cores</h2>
+<table>
+<thead>
+<tr>
+<th>Estado</th>
+<th>Etiqueta (PT)</th>
+<th>Cor</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NOVO</td>
+<td>Novo</td>
+<td>vermelho <code>#DC2626</code></td>
+</tr>
+<tr>
+<td>ASSUMIDO</td>
+<td>Assumido</td>
+<td>laranja <code>#EA580C</code></td>
+</tr>
+<tr>
+<td>EQUIPA_A_CAMINHO</td>
+<td>Equipa a caminho</td>
+<td>azul <code>#2563EB</code></td>
+</tr>
+<tr>
+<td>EQUIPA_NO_LOCAL</td>
+<td>Equipa no local</td>
+<td>verde-azulado <code>#0D9488</code></td>
+</tr>
+<tr>
+<td>RESOLVIDO</td>
+<td>Resolvido</td>
+<td>verde <code>#16A34A</code></td>
+</tr>
+<tr>
+<td>FALSO_ALARME</td>
+<td>Falso alarme</td>
+<td>cinzento <code>#6B7280</code></td>
+</tr>
+<tr>
+<td>CANCELADO_PELO_UTILIZADOR</td>
+<td>Cancelado pelo utilizador</td>
+<td>cinzento <code>#6B7280</code></td>
+</tr>
+<tr>
+<td>EXPIRADO</td>
+<td>Sem actualização</td>
+<td>amarelo <code>#CA8A04</code></td>
+</tr>
+</tbody>
+</table>
+<p>Alertas <code>NOVO</code> com <code>escalated = true</code>: cartão com fundo vermelho forte e etiqueta &quot;SEM RESPOSTA&quot;.</p>
+<p><strong>Estados da patrulha:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Estado</th>
+<th>Etiqueta (PT)</th>
+<th>Cor</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DISPONIVEL</td>
+<td>Disponível</td>
+<td>verde <code>#16A34A</code></td>
+</tr>
+<tr>
+<td>DESPACHADA</td>
+<td>Despachada</td>
+<td>azul claro <code>#60A5FA</code></td>
+</tr>
+<tr>
+<td>A_CAMINHO</td>
+<td>A caminho</td>
+<td>azul <code>#2563EB</code></td>
+</tr>
+<tr>
+<td>NO_LOCAL</td>
+<td>No local</td>
+<td>verde-azulado <code>#0D9488</code></td>
+</tr>
+<tr>
+<td>INDISPONIVEL</td>
+<td>Indisponível</td>
+<td>cinzento <code>#6B7280</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Papel da organização no alerta</strong> (etiquetas no cartão): Responsável, Supervisão, Reserva.</p>
+<hr>
+<h2>5. Acções do operador</h2>
+<p>Chamada: <code>PATCH /alerts/{alert_uid}/status</code> com <code>{ &quot;status&quot;: &quot;...&quot; }</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Estado actual</th>
+<th>Botões a mostrar</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NOVO</td>
+<td><strong>Assumir</strong> (principal, grande), Falso alarme</td>
+</tr>
+<tr>
+<td>ASSUMIDO</td>
+<td>Despachar patrulha (esquadra), Equipa a caminho, Resolver, Falso alarme</td>
+</tr>
+<tr>
+<td>EQUIPA_A_CAMINHO</td>
+<td>Equipa no local, Resolver, Falso alarme</td>
+</tr>
+<tr>
+<td>EQUIPA_NO_LOCAL</td>
+<td>Resolver, Falso alarme</td>
+</tr>
+<tr>
+<td>EXPIRADO</td>
+<td>Resolver, Falso alarme</td>
+</tr>
+<tr>
+<td>Estados finais</td>
+<td>nenhum botão</td>
+</tr>
+</tbody>
+</table>
+<p>Regras de interface:</p>
+<ul>
+<li><strong>Assumir</strong> não pede confirmação (rapidez). <strong>Resolver</strong> e <strong>Falso alarme</strong> pedem confirmação num diálogo curto.</li>
+<li>Se o alerta estiver assumido por <strong>outro operador</strong>, desactivar os botões e mostrar &quot;Assumido por X&quot;.</li>
+<li>Resposta <code>409 ALREADY_ASSIGNED</code>: mostrar aviso &quot;Este alerta já foi assumido por outro operador&quot; e actualizar o cartão.</li>
+<li>Resposta <code>409 INVALID_STATE</code>: recarregar o alerta e mostrar aviso.</li>
+<li>Enquanto o pedido corre, botão em estado de carregamento e bloqueado para evitar duplo clique.</li>
+</ul>
+<h3>Permissões por perfil</h3>
+<table>
+<thead>
+<tr>
+<th>Perfil</th>
+<th>Assumir, Resolver, Falso alarme</th>
+<th>Despachar e gerir patrulhas</th>
+<th>Reatribuir</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>operador</code></td>
+<td>Sim</td>
+<td>Não</td>
+<td>Não</td>
+</tr>
+<tr>
+<td><code>despachante</code></td>
+<td>Sim, se a esquadra for Responsável (ou Reserva após escalada)</td>
+<td>Sim, da sua esquadra</td>
+<td>Não</td>
+</tr>
+<tr>
+<td><code>comando</code></td>
+<td>Só depois de <code>escalated = true</code></td>
+<td>Não</td>
+<td>Sim</td>
+</tr>
+<tr>
+<td><code>dono_estabelecimento</code></td>
+<td>Não</td>
+<td>Não</td>
+<td>Não</td>
+</tr>
+<tr>
+<td><code>admin</code></td>
+<td>Sim</td>
+<td>Sim</td>
+<td>Sim</td>
+</tr>
+</tbody>
+</table>
+<p>Esconder os botões que o perfil não pode usar e, se mesmo assim vier <code>403 FORBIDDEN_ACTION</code>, mostrar &quot;Sem permissão para esta acção&quot;.</p>
+<hr>
+<h2>6. Tempo real (SSE)</h2>
+<p>Abrir uma ligação única após o login:</p>
+<pre><code class="language-js">const es = new EventSource(`${API_URL}/stream?token=${token}`);
+es.addEventListener(&#39;alert.created&#39;, e =&gt; ...JSON.parse(e.data));
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Evento</th>
+<th>O que o painel faz</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>alert.created</code></td>
+<td>Adiciona à lista e ao mapa, <strong>toca o som</strong>, selecciona automaticamente se não houver outro alerta seleccionado, mostra notificação toast</td>
+</tr>
+<tr>
+<td><code>alert.position</code></td>
+<td>Move o marcador, acrescenta ponto ao trilho, actualiza &quot;última posição&quot;</td>
+</tr>
+<tr>
+<td><code>alert.status_changed</code></td>
+<td>Actualiza etiqueta, botões e &quot;assumido por&quot;; se passou a estado final, sai da lista de activos após 5 s</td>
+</tr>
+<tr>
+<td><code>alert.escalated</code></td>
+<td>Cartão fica vermelho forte, som repetido (ver secção 7). Para a esquadra de reserva e o Comando o alerta <strong>aparece agora</strong> na lista (o evento traz o objecto completo em <code>alert</code>); o Comando passa de &quot;Supervisão&quot; a &quot;Acção necessária&quot;</td>
+</tr>
+<tr>
+<td><code>alert.reassigned</code></td>
+<td>Substitui o objecto do alerta (<code>alert</code>); para a esquadra que o perdeu passa a &quot;Supervisão&quot;; para a nova responsável toca o som como se fosse novo</td>
+</tr>
+<tr>
+<td><code>alert.dispatch</code></td>
+<td>Acrescenta a patrulha à lista do detalhe e actualiza o seu estado</td>
+</tr>
+<tr>
+<td><code>patrol.updated</code></td>
+<td>Actualiza o chip de estado da patrulha nas listas e no detalhe</td>
+</tr>
+</tbody>
+</table>
+<p>O backend só envia os eventos que o perfil pode ver, por isso o frontend não filtra por organização. Se chegar um evento de um alerta que não conhece, fazer <code>GET /alerts/{uid}</code> para o obter. O dono recebe apenas <code>alert.created</code> e <code>alert.status_changed</code>, em versão reduzida.</p>
+<p><strong>Reconexão:</strong> o <code>EventSource</code> reconecta sozinho, mas ao voltar a ligar, fazer de novo <code>GET /alerts</code> para recuperar o que se perdeu. Mostrar o estado da ligação na barra superior (<code>onopen</code> = ligado, <code>onerror</code> = a reconectar).</p>
+<hr>
+<h2>7. Som e notificações</h2>
+<ul>
+<li>Ficheiro de sirene curta em loop (<code>/public/siren.mp3</code>, 3 a 5 s). Tocar em <code>alert.created</code> e repetir a cada 10 s enquanto existir algum alerta <code>NOVO</code> por assumir; parar quando não houver nenhum.</li>
+<li><code>alert.escalated</code>: tocar uma versão mais insistente (ou o mesmo som mais rápido).</li>
+<li><strong>Por perfil:</strong> operador e esquadra (Responsável, ou Reserva já activada): sirene completa. Comando: aviso curto em alertas novos (supervisão) e sirene completa no <code>alert.escalated</code>. Dono do estabelecimento: um aviso sonoro curto, uma só vez, sem loop.</li>
+<li>Mostrar também um <strong>toast</strong> no canto com &quot;Novo alerta: <nome>&quot; e botão &quot;Ver&quot;.</li>
+<li>Título da aba do browser: <code>(2) 🚨 SOS</code> com o número de alertas <code>NOVO</code>, para ser visível noutro separador.</li>
+<li>Opcional: Notification API do browser, pedindo permissão ao entrar.</li>
+</ul>
+<hr>
+<h2>8. Contratos da API que o frontend consome</h2>
+<p>Base: <code>VITE_API_URL</code> · cabeçalho <code>Authorization: Bearer &lt;token&gt;</code> em tudo excepto login.</p>
+<table>
+<thead>
+<tr>
+<th>Método</th>
+<th>Rota</th>
+<th>Uso</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>POST</td>
+<td><code>/auth/login</code></td>
+<td>Login</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/auth/me</code></td>
+<td>Validar sessão ao recarregar</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/alerts?status=NOVO,ASSUMIDO,EQUIPA_A_CAMINHO</code></td>
+<td>Lista inicial</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/alerts?from=&amp;to=&amp;limit=50&amp;offset=0</code></td>
+<td>Histórico</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/alerts/{alert_uid}</code></td>
+<td>Detalhe com trilho e linha do tempo</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/alerts/{alert_uid}/status</code></td>
+<td>Acções</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/stream?token=</code></td>
+<td>Eventos em tempo real (SSE)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/organizations?type=esquadra</code></td>
+<td>Esquadras para o mapa e para a reatribuição</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/patrols?organization_id=</code></td>
+<td>Patrulhas de uma esquadra</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/patrols/{id}</code></td>
+<td>Disponível ou Indisponível</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/alerts/{uid}/dispatch</code></td>
+<td>Despachar patrulhas</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/alerts/{uid}/patrols/{patrol_id}</code></td>
+<td>A caminho, No local ou Libertada</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/alerts/{uid}/reassign</code></td>
+<td>Reatribuir a outra esquadra (comando)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/stats/response-times?from=&amp;to=</code></td>
+<td>Estatísticas (comando)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/demo/buttons</code></td>
+<td>Botões para o simulador</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/demo/button-alert</code></td>
+<td>Disparar alerta de botão (demo)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Login</strong></p>
+<pre><code class="language-json">// POST /auth/login
+{ &#34;phone&#34;: &#34;+258840000002&#34;, &#34;password&#34;: &#34;operador1234&#34; }
+// 200
+{ &#34;user&#34;: { &#34;id&#34;: &#34;u2&#34;, &#34;name&#34;: &#34;Operador 1&#34;, &#34;role&#34;: &#34;operador&#34; }, &#34;token&#34;: &#34;&lt;jwt&gt;&#34; }
+</code></pre>
+<p><strong>Objecto de alerta (item da lista)</strong></p>
+<pre><code class="language-json">{
+  &#34;alert_uid&#34;: &#34;A7K29Q&#34;,
+  &#34;status&#34;: &#34;NOVO&#34;,
+  &#34;escalated&#34;: false,
+  &#34;source&#34;: &#34;cidadao&#34;,
+  &#34;first_channel&#34;: &#34;internet&#34;,
+  &#34;is_simulation&#34;: false,
+  &#34;user&#34;: { &#34;name&#34;: &#34;Ana&#34;, &#34;phone&#34;: &#34;+258841234567&#34; },
+  &#34;establishment&#34;: null,
+  &#34;routing&#34;: {
+    &#34;responsible&#34;: { &#34;id&#34;: &#34;o2&#34;, &#34;name&#34;: &#34;Esquadra A&#34;, &#34;type&#34;: &#34;esquadra&#34;, &#34;distance_km&#34;: 1.4 },
+    &#34;supervision&#34;: { &#34;id&#34;: &#34;o1&#34;, &#34;name&#34;: &#34;Comando (demo)&#34; },
+    &#34;reserve&#34;: { &#34;id&#34;: &#34;o3&#34;, &#34;name&#34;: &#34;Esquadra B&#34;, &#34;distance_km&#34;: 2.9, &#34;notified&#34;: false }
+  },
+  &#34;assigned_to&#34;: null,
+  &#34;last_position&#34;: { &#34;lat&#34;: -19.83365, &#34;lon&#34;: 34.85107, &#34;accuracy_m&#34;: 12,
+                     &#34;captured_at&#34;: &#34;2026-09-30T10:15:00Z&#34;, &#34;battery&#34;: 64 },
+  &#34;created_at&#34;: &#34;2026-09-30T10:15:01Z&#34;,
+  &#34;updated_at&#34;: &#34;2026-09-30T10:15:01Z&#34;
+}
+</code></pre>
+<p><code>assigned_to</code> é <code>null</code> ou <code>{ &quot;id&quot;: &quot;u2&quot;, &quot;name&quot;: &quot;Operador 1&quot; }</code>. Nos alertas de botão (<code>source = &quot;botao&quot;</code>), <code>user</code> é <code>null</code> e <code>establishment</code> vem preenchido: <code>{ &quot;id&quot;: &quot;o5&quot;, &quot;name&quot;: &quot;Bomba (demo)&quot;, &quot;button_label&quot;: &quot;Caixa 2&quot; }</code>. Qualquer bloco de <code>routing</code> pode ser <code>null</code>.</p>
+<p><strong>Detalhe (<code>GET /alerts/{uid}</code>)</strong> — o objecto acima mais:</p>
+<pre><code class="language-json">{
+  &#34;trusted_contacts&#34;: [ { &#34;name&#34;: &#34;Mãe&#34;, &#34;phone&#34;: &#34;+258821112223&#34; } ],
+  &#34;patrols&#34;: [ { &#34;patrol_id&#34;: &#34;p1&#34;, &#34;name&#34;: &#34;Patrulha 1&#34;, &#34;organization&#34;: &#34;Esquadra A&#34;,
+                 &#34;status&#34;: &#34;A_CAMINHO&#34;, &#34;dispatched_at&#34;: &#34;...&#34;, &#34;en_route_at&#34;: &#34;...&#34;,
+                 &#34;on_scene_at&#34;: null, &#34;released_at&#34;: null } ],
+  &#34;positions&#34;: [ { &#34;seq&#34;: 1, &#34;lat&#34;: -19.83365, &#34;lon&#34;: 34.85107, &#34;accuracy_m&#34;: 12,
+                   &#34;channel&#34;: &#34;internet&#34;, &#34;captured_at&#34;: &#34;2026-09-30T10:15:00Z&#34; } ],
+  &#34;timeline&#34;: [ { &#34;action&#34;: &#34;created&#34;, &#34;actor&#34;: null, &#34;at&#34;: &#34;2026-09-30T10:15:01Z&#34; } ]
+}
+</code></pre>
+<p><strong>Eventos SSE (campo <code>data</code> em JSON)</strong></p>
+<pre><code class="language-json">// alert.created → objecto de alerta completo
+// alert.position
+{ &#34;alert_uid&#34;: &#34;A7K29Q&#34;,
+  &#34;position&#34;: { &#34;seq&#34;: 2, &#34;lat&#34;: -19.8339, &#34;lon&#34;: 34.8512, &#34;accuracy_m&#34;: 10,
+                &#34;battery&#34;: 63, &#34;channel&#34;: &#34;internet&#34;, &#34;captured_at&#34;: &#34;2026-09-30T10:15:10Z&#34; } }
+// alert.status_changed
+{ &#34;alert_uid&#34;: &#34;A7K29Q&#34;, &#34;status&#34;: &#34;ASSUMIDO&#34;,
+  &#34;assigned_to&#34;: { &#34;id&#34;: &#34;u2&#34;, &#34;name&#34;: &#34;Operador 1&#34; },
+  &#34;by&#34;: { &#34;id&#34;: &#34;u2&#34;, &#34;name&#34;: &#34;Operador 1&#34; }, &#34;at&#34;: &#34;2026-09-30T10:15:20Z&#34; }
+// alert.escalated (traz o objecto completo)
+{ &#34;alert_uid&#34;: &#34;A7K29Q&#34;, &#34;at&#34;: &#34;2026-09-30T10:15:31Z&#34;, &#34;alert&#34;: { &#34;...&#34;: &#34;objecto de alerta completo&#34; } }
+// alert.reassigned
+{ &#34;alert&#34;: { &#34;...&#34;: &#34;objecto de alerta completo&#34; },
+  &#34;by&#34;: { &#34;id&#34;: &#34;u5&#34;, &#34;name&#34;: &#34;Comando 1&#34; }, &#34;at&#34;: &#34;2026-09-30T10:16:10Z&#34; }
+// alert.dispatch
+{ &#34;alert_uid&#34;: &#34;A7K29Q&#34;,
+  &#34;patrol&#34;: { &#34;patrol_id&#34;: &#34;p1&#34;, &#34;name&#34;: &#34;Patrulha 1&#34;, &#34;status&#34;: &#34;DESPACHADA&#34; },
+  &#34;at&#34;: &#34;2026-09-30T10:15:40Z&#34; }
+// patrol.updated
+{ &#34;patrol&#34;: { &#34;id&#34;: &#34;p1&#34;, &#34;name&#34;: &#34;Patrulha 1&#34;, &#34;organization_id&#34;: &#34;o2&#34;,
+              &#34;status&#34;: &#34;A_CAMINHO&#34;, &#34;current_alert_uid&#34;: &#34;A7K29Q&#34; },
+  &#34;at&#34;: &#34;2026-09-30T10:15:55Z&#34; }
+</code></pre>
+<p><strong>Versão reduzida do alerta para o dono</strong> (<code>GET /alerts</code> e eventos, perfil <code>dono_estabelecimento</code>):</p>
+<pre><code class="language-json">{ &#34;alert_uid&#34;: &#34;K3M9PX&#34;, &#34;source&#34;: &#34;botao&#34;, &#34;status&#34;: &#34;EQUIPA_A_CAMINHO&#34;,
+  &#34;establishment&#34;: { &#34;id&#34;: &#34;o5&#34;, &#34;name&#34;: &#34;Bomba (demo)&#34;, &#34;button_label&#34;: &#34;Caixa 2&#34; },
+  &#34;police_notified&#34;: true,
+  &#34;created_at&#34;: &#34;2026-09-30T10:15:01Z&#34;, &#34;updated_at&#34;: &#34;2026-09-30T10:17:40Z&#34; }
+</code></pre>
+<p><strong>Organizações, patrulhas, despacho, reatribuição e estatísticas</strong></p>
+<pre><code class="language-json">// GET /organizations?type=esquadra
+[ { &#34;id&#34;: &#34;o2&#34;, &#34;name&#34;: &#34;Esquadra A (demo)&#34;, &#34;type&#34;: &#34;esquadra&#34;, &#34;parent_id&#34;: &#34;o1&#34;,
+    &#34;lat&#34;: -19.8336, &#34;lon&#34;: 34.8511, &#34;address&#34;: null, &#34;active&#34;: true } ]
+// GET /patrols?organization_id=o2
+[ { &#34;id&#34;: &#34;p1&#34;, &#34;name&#34;: &#34;Patrulha 1&#34;, &#34;vehicle&#34;: null, &#34;status&#34;: &#34;DISPONIVEL&#34;,
+    &#34;organization_id&#34;: &#34;o2&#34;, &#34;current_alert_uid&#34;: null } ]
+// PATCH /patrols/p1
+{ &#34;status&#34;: &#34;INDISPONIVEL&#34; }
+// POST /alerts/A7K29Q/dispatch
+{ &#34;patrol_ids&#34;: [&#34;p1&#34;, &#34;p2&#34;] }
+// PATCH /alerts/A7K29Q/patrols/p1
+{ &#34;status&#34;: &#34;A_CAMINHO&#34; }          // ou &#34;NO_LOCAL&#34; ou &#34;LIBERTADA&#34;
+// POST /alerts/A7K29Q/reassign
+{ &#34;organization_id&#34;: &#34;o3&#34; }
+// GET /stats/response-times?from=2026-09-01&amp;to=2026-09-30
+{ &#34;alerts_total&#34;: 12, &#34;escalated_count&#34;: 2,
+  &#34;avg_seconds_to_assume&#34;: 18, &#34;avg_seconds_to_dispatch&#34;: 45, &#34;avg_seconds_to_on_scene&#34;: 410,
+  &#34;by_station&#34;: [ { &#34;organization_id&#34;: &#34;o2&#34;, &#34;name&#34;: &#34;Esquadra A (demo)&#34;, &#34;alerts&#34;: 5,
+                    &#34;avg_seconds_to_assume&#34;: 14, &#34;avg_seconds_to_on_scene&#34;: 380 } ] }
+// GET /demo/buttons
+[ { &#34;button_id&#34;: &#34;b1&#34;, &#34;establishment&#34;: { &#34;id&#34;: &#34;o5&#34;, &#34;name&#34;: &#34;Bomba (demo)&#34; }, &#34;label&#34;: &#34;Caixa 2&#34; } ]
+// POST /demo/button-alert
+{ &#34;button_id&#34;: &#34;b1&#34; }
+</code></pre>
+<p>Códigos de erro novos: <code>409 NOT_ASSUMED</code>, <code>409 PATROL_UNAVAILABLE</code>, <code>409 PATROL_BUSY</code>, <code>403 FORBIDDEN_ACTION</code>.</p>
+<p><strong>Erros:</strong> formato <code>{ &quot;error&quot;: { &quot;code&quot;: &quot;...&quot;, &quot;message&quot;: &quot;...&quot; } }</code>. Códigos que o painel deve tratar: <code>401</code> (voltar ao login), <code>403</code>, <code>404</code>, <code>409</code> (<code>ALREADY_ASSIGNED</code>, <code>INVALID_STATE</code>), <code>429</code>.</p>
+<hr>
+<h2>9. Trabalhar sem backend (modo mock)</h2>
+<p>Com <code>VITE_USE_MOCK=true</code>, criar uma camada <code>api/</code> com duas implementações (real e mock) com a mesma interface, para trocar sem mexer nos componentes.</p>
+<p>O mock deve:</p>
+<ul>
+<li>Aceitar os logins de seed com qualquer password: <code>+258840000002</code> (operador), <code>+258840000004</code> (despachante da Esquadra A), <code>+258840000005</code> (comando), <code>+258840000006</code> (dono).</li>
+<li>Começar com 1 comando, 3 esquadras (coordenadas abaixo), 2 patrulhas por esquadra e 3 alertas de exemplo em estados diferentes (NOVO, ASSUMIDO, RESOLVIDO), um deles de botão de estabelecimento.</li>
+<li>Calcular o encaminhamento com a distância em linha recta (haversine): responsável = esquadra mais próxima, reserva = a 2.ª, supervisão = o Comando.</li>
+<li>Simular SSE com um temporizador: aos 10 s cria um alerta novo; a cada 5 s move uma posição pequena para o alerta activo; 30 s depois de qualquer alerta <code>NOVO</code> sem ninguém a assumir, dispara <code>alert.escalated</code> (activando a reserva).</li>
+<li>Aplicar localmente as transições de estado da secção 5, o despacho de patrulhas (<code>DESPACHADA → A_CAMINHO → NO_LOCAL → libertada</code>, com a mudança automática do estado do alerta) e a reatribuição.</li>
+<li>Filtrar os alertas por perfil como o backend faria, incluindo a versão reduzida para o dono.</li>
+</ul>
+<p><strong>Coordenadas de exemplo (Beira):</strong></p>
+<pre><code>-19.8336, 34.8511   Centro
+-19.8210, 34.8620   Macuti
+-19.8520, 34.8400   Munhava
+</code></pre>
+<p>Usar estes três pontos como <strong>coordenadas de demonstração</strong> da Esquadra A, B e C, e <code>-19.8380, 34.8450</code> para o estabelecimento de demonstração. Não são as posições reais das esquadras; substituir quando forem confirmadas.</p>
+<hr>
+<h2>10. Requisitos não funcionais do frontend</h2>
+<ul>
+<li><strong>Desempenho:</strong> novo alerta visível e com som em ≤ 1 s após o evento; painel fluido com 50 alertas na lista.</li>
+<li><strong>Responsivo:</strong> pensado para computador (≥ 1280 px). Em ecrãs menores, o detalhe abre como painel por cima do mapa. A vista do dono é pensada primeiro para telemóvel (≥ 360 px).</li>
+<li><strong>Acessibilidade básica:</strong> contraste suficiente, botões com texto (não só cor), navegável por teclado.</li>
+<li><strong>Idioma:</strong> tudo em português (Moçambique); horas no fuso <code>Africa/Maputo</code>.</li>
+<li><strong>Segurança:</strong> não guardar a password; token em <code>sessionStorage</code>; logout limpa tudo. Cada perfil só renderiza os blocos a que tem direito (quem impõe as permissões é o backend).</li>
+<li><strong>Robustez:</strong> nunca mostrar ecrã branco; erros de rede com mensagem e botão &quot;Tentar de novo&quot;.</li>
+</ul>
+<hr>
+<h2>11. Critérios de aceitação do frontend</h2>
+<ul>
+<li><input disabled="" type="checkbox"> Login funciona e protege todas as rotas.</li>
+<li><input disabled="" type="checkbox"> Ao chegar <code>alert.created</code>, o alerta aparece na lista e no mapa em ≤ 1 s, com som e toast.</li>
+<li><input disabled="" type="checkbox"> O marcador e o trilho movem-se ao chegar <code>alert.position</code>.</li>
+<li><input disabled="" type="checkbox"> Um operador assume, marca &quot;equipa a caminho&quot; e resolve; a lista e o mapa reflectem cada passo.</li>
+<li><input disabled="" type="checkbox"> Dois operadores em simultâneo: o segundo vê a mensagem &quot;já assumido&quot;.</li>
+<li><input disabled="" type="checkbox"> Sem ligação SSE, aparece faixa de aviso e, ao voltar, a lista é recarregada.</li>
+<li><input disabled="" type="checkbox"> Alerta sem resposta após a escalada (30 s por omissão) fica com destaque &quot;SEM RESPOSTA&quot;.</li>
+<li><input disabled="" type="checkbox"> O histórico lista alertas encerrados com filtros e mostra o trilho completo.</li>
+<li><input disabled="" type="checkbox"> Cada perfil entra na sua rota inicial e só vê o que lhe compete.</li>
+<li><input disabled="" type="checkbox"> Esquadra: assume, despacha 2 patrulhas, marca A caminho e No local e liberta; o estado do alerta acompanha automaticamente.</li>
+<li><input disabled="" type="checkbox"> A esquadra de reserva e o Comando passam a ver e a poder agir quando chega <code>alert.escalated</code>.</li>
+<li><input disabled="" type="checkbox"> O Comando reatribui um alerta a outra esquadra e esta recebe-o com som.</li>
+<li><input disabled="" type="checkbox"> O Comando vê as estatísticas de tempos de resposta.</li>
+<li><input disabled="" type="checkbox"> O dono vê o alerta do seu estabelecimento em linguagem simples, com &quot;Não se dirija ao local&quot;, sem mapa nem dados da polícia.</li>
+<li><input disabled="" type="checkbox"> O simulador <code>/demo</code> dispara um alerta de botão que aparece nas vistas da esquadra, do comando e do dono.</li>
+<li><input disabled="" type="checkbox"> Funciona por inteiro em modo mock, sem backend.</li>
+</ul>
+<hr>
+<h2>12. Ordem de implementação sugerida</h2>
+<ol>
+<li>Projecto, rotas, layout das 3 zonas, tema e cores dos estados.</li>
+<li>Camada <code>api/</code> com mock e login.</li>
+<li>Lista de alertas e mapa com marcadores (dados mock).</li>
+<li>Detalhe do alerta e botões de acção.</li>
+<li>SSE (mock primeiro, real depois), som, toasts, título da aba.</li>
+<li>Trilho, seguir automaticamente, escalada.</li>
+<li>Perfis e rotas por <code>role</code>, esquadras no mapa, bloco de encaminhamento.</li>
+<li>Vista da esquadra: patrulhas, despacho e estados.</li>
+<li>Vista do comando: reatribuição, esquadras e estatísticas.</li>
+<li>Vista do dono do estabelecimento e simulador <code>/demo</code>.</li>
+<li>Histórico.</li>
+<li>Ligar à API real, tratar erros e reconexão, polimento.</li>
+</ol>
+
+</body></html>
